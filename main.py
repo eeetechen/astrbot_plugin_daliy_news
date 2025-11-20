@@ -34,7 +34,16 @@ class Daily60sNewsPlugin(Star):
         self.news_path = SAVED_NEWS_DIR
         self.groups = self.config.groups
         self.push_time = self.config.push_time
+        if self.news_type == "vikiboss_api":
+            self.api = self.config.vikiboss_api
+        elif self.news_type == "indirect":
+            self.api = self.config.indirect
+            self.img_key = self.config.img_key
+            self.date_key = self.config.date_key
+        elif self.news_type == "direct":
+            self.img_url = self.config.direct
         logger.info(f"插件配置: {self.config}")
+
         # 启动定时任务
         self._monitoring_task = asyncio.create_task(self._daily_task())
 
@@ -49,12 +58,9 @@ class Daily60sNewsPlugin(Star):
         在当前聊天页面获取今日60s新闻（根据配置类型返回文本或图片）,
         别名：早报，新闻
         """
-        if self.news_type == "text":
-            news_content, _ = await self._get_text_news()
-            yield event.plain_result(news_content)
-        else:
-            news_path, _ = await self._get_image_news()
-            yield event.image_result(news_path)
+        news_path, _ = await self._get_image_news()
+        yield event.image_result(news_path)
+
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @mnews.command("status")
@@ -69,7 +75,6 @@ class Daily60sNewsPlugin(Star):
         yield event.plain_result(
             f"每日60s新闻插件正在运行\n"
             f"推送时间: {self.push_time}\n"
-            f"默认新闻格式: {'文本' if self.news_type == 'text' else '图片'}\n"
             f"距离下次推送还有: {hours}小时{minutes}分钟"
         )
 
@@ -93,14 +98,6 @@ class Daily60sNewsPlugin(Star):
         await self._send_daily_news_to_groups()
         yield event.plain_result(f"{event.get_sender_name()}:已成功向群组推送新闻")
 
-    @mnews.command("text")
-    async def push_text_news(self, event: AstrMessageEvent):
-        """
-        在当前聊天页面获取今日60s新闻-文字
-        """
-        news_content, _ = await self._get_text_news()
-        yield event.plain_result(news_content)
-
     @mnews.command("image")
     async def push_image_news(self, event: AstrMessageEvent):
         """
@@ -115,9 +112,9 @@ class Daily60sNewsPlugin(Star):
         """
         强制更新新闻文件（仅管理员）
         """
-        text_content = await self._update_news_files()
+        await self._update_news_files()
         yield event.plain_result(
-            f"{event.get_sender_name()}:今日新闻文件已更新,文字新闻简略内容:\n{text_content[:50]}..."
+            f"{event.get_sender_name()}:今日新闻文件已更新..."
         )
 
     async def terminate(self):
@@ -128,11 +125,8 @@ class Daily60sNewsPlugin(Star):
 
     async def _update_news_files(self):
         logger.info("开始强制更新新闻文件...")
-        text_path, _ = self._get_news_file_path(news_type="text")
-        text_content, _ = await self._download_news(path=text_path, news_type="text")
-        image_path, _ = self._get_news_file_path(news_type="image")
-        await self._download_news(path=image_path, news_type="image")
-        return text_content
+        image_path, _ = self._get_news_file_path()
+        await self._download_news(path=image_path, news_type=self.news_type)
 
     def _file_exists(self, path: str) -> bool:
         """
@@ -140,69 +134,106 @@ class Daily60sNewsPlugin(Star):
         """
         return os.path.exists(path)
 
-    def _get_news_file_path(self, news_type: str) -> Tuple[str, str]:
+    def _get_news_file_path(self) -> Tuple[str, str]:
         """
         获取今日新闻文件的绝对路径和文件名
-        :param news_type: 'text' 或 'image'
         :return: (文件绝对路径, 文件名)
         """
         current_date = datetime.datetime.now().strftime("%Y%m%d")
-        name = f"{current_date}.txt" if news_type == "text" else f"{current_date}.jpeg"
+        name = f"{current_date}.jpeg"
         path = os.path.join(self.news_path, name)
         logger.info(f"mnews path: {path}")
         return path, name
 
-    async def _get_text_news(self) -> Tuple[str, bool]:
-        """
-        获取文本新闻内容，若本地无则下载
-        :return: (新闻内容, 是否成功)
-        """
-        path, _ = self._get_news_file_path(news_type="text")
-        if self._file_exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                data = f.read()
-            return data, True
-        else:
-            return await self._download_news(path, news_type="text")
+    # async def _get_text_news(self) -> Tuple[str, bool]:
+    #     """
+    #     获取文本新闻内容，若本地无则下载
+    #     :return: (新闻内容, 是否成功)
+    #     """
+    #     path, _ = self._get_news_file_path(news_type="text")
+    #     if self._file_exists(path):
+    #         with open(path, "r", encoding="utf-8") as f:
+    #             data = f.read()
+    #         return data, True
+    #     else:
+    #         return await self._download_news(path, news_type="text")
 
     async def _get_image_news(self) -> Tuple[str, bool]:
         """
         获取图片新闻路径，若本地无则下载
         :return: (图片路径, 是否成功)
         """
-        path, _ = self._get_news_file_path(news_type="image")
+        path, _ = self._get_news_file_path()
         if self._file_exists(path):
             return path, True
         else:
-            return await self._download_news(path, news_type="image")
+            return await self._download_news(path, news_type=self.news_type)
 
     async def _download_news(self, path: str, news_type: str) -> Tuple[Any, bool]:
         """
-        下载今日新闻（文本或图片），失败自动重试
+        下载今日新闻（图片），失败自动重试
         :param path: 保存路径
-        :param news_type: 'text' 或 'image'
+        :param news_type:
         :return: (内容或路径, 是否成功)
         """
         retries = 3
         timeout = 5
-        url_type = "text" if news_type == "text" else "image-proxy"
         date = datetime.datetime.now().strftime("%Y-%m-%d")
+
         for attempt in range(retries):
             try:
-                url = f"https://60s-api.viki.moe/v2/60s?date={date}&encoding={url_type}"
-                logger.info(f"开始下载新闻文件:{url}...")
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=timeout) as response:
-                        if response.status == 200:
-                            content = await response.read()
-                            with open(path, "wb") as f:
-                                f.write(content)
-                            if news_type == "text":
-                                return content.decode("utf-8"), True
+                if self.news_type == "vikiboss_api":
+                    url = f"https://60s-api.viki.moe/v2/60s?date={date}&encoding=image-proxy"
+                    logger.info(f"开始下载新闻文件:{url}...")
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(url, timeout=timeout) as response:
+                            if response.status == 200:
+                                content = await response.read()
+                                with open(path, "wb") as f:
+                                    f.write(content)
+                                    return path, True
                             else:
-                                return path, True
-                        else:
-                            raise Exception(f"API返回错误代码: {response.status}")
+                                raise Exception(f"API返回错误代码: {response.status}")
+                elif self.news_type == "indirect":
+                    url = self.api
+                    logger.info(f"开始获取新闻数据:{url}...")
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(url, timeout=timeout) as response:
+                            if response.status == 200:
+                                # 解析JSON响应
+                                data = await response.json()
+                                if data.get("code") == 200:
+                                    image_url = data.get("imageUrl")
+                                    if not image_url:
+                                        raise Exception("响应中未找到imageUrl字段")
+
+                                    # 下载图片
+                                    logger.info(f"开始下载图片:{image_url}...")
+                                    async with session.get(image_url, timeout=timeout) as img_response:
+                                        if img_response.status == 200:
+                                            img_content = await img_response.read()
+                                            with open(path, "wb") as f:
+                                                f.write(img_content)
+                                            return path, True
+                                        else:
+                                            raise Exception(f"图片下载失败: HTTP {img_response.status}")
+                                else:
+                                    raise Exception(f"API返回错误: {data.get('msg', '未知错误')}")
+                            else:
+                                raise Exception(f"API请求失败: HTTP {response.status}")
+                elif self.news_type == "direct":
+                    url = self.img_url
+                    logger.info(f"开始下载新闻文件:{url}...")
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(url, timeout=timeout) as response:
+                            if response.status == 200:
+                                content = await response.read()
+                                with open(path, "wb") as f:
+                                    f.write(content)
+                                    return path, True
+                            else:
+                                raise Exception(f"API返回错误代码: {response.status}")
+
             except Exception as e:
                 logger.error(
                     f"[mnews] 请求失败，正在重试 {attempt + 1}/{retries} 次: {e}"
@@ -219,18 +250,13 @@ class Daily60sNewsPlugin(Star):
         """
         for target in self.config.groups:
             try:
-                if self.news_type == "text":
-                    news_content, _ = await self._get_text_news()
-                    message_chain = MessageChain().message(news_content)
-                    logger.info(f"[每日新闻] 推送文本新闻: {news_content[:50]}...")
-                    await self.context.send_message(target, message_chain)
-                else:
-                    news_path, _ = await self._get_image_news()
-                    message_chain = (
-                        MessageChain().message("每日新闻播报：").file_image(news_path)
-                    )
-                    logger.info(f"[每日新闻] 推送图片新闻: {news_path}")
-                    await self.context.send_message(target, message_chain)
+
+                news_path, _ = await self._get_image_news()
+                message_chain = (
+                    MessageChain().message("每日新闻播报：").file_image(news_path)
+                )
+                logger.info(f"[每日新闻] 推送图片新闻: {news_path}")
+                await self.context.send_message(target, message_chain)
                 logger.info(f"[每日新闻] 已向{target}推送定时新闻。")
                 await asyncio.sleep(2)  # 防止推送过快
             except Exception as e:

@@ -9,30 +9,61 @@
   "news_type": {
     "description": "news_type",
     "type": "string",
-    "hint": "新闻的发送方式",
+    "hint": "api获取渠道",
     "options": [
-      "text",
-      "image"
+      "vikiboss_api",
+      "indirect",
+      "direct"
     ],
-    "default": "text"
+    "default": "indirect"
   },
   "push_time": {
     "description": "推送时间(以服务器时区为准)",
     "type": "string",
-    "hint": "填写推送的时间，如: 08:00,18:00",
-    "default": "08:00"
+    "hint": "填写推送的时间，如: 09:00,18:00",
+    "default": "09:00"
   },
   "save_days": {
     "description": "保存多久的新闻",
     "type": "int",
     "hint": "填写需要保留的新闻时间，单位为天.默认保留30天",
-    "default": 30
+    "default": 5
   },
-  "news_api": {
-    "description": "今日新闻api",
+  "vikiboss_api": {
+    "description": "今日新闻api - vikiboss",
     "type": "string",
     "hint": "使用https://github.com/vikiboss/60s提供的接口,客户端默认参数?date=20250xxx&encoding=text/image-proxy\n非同格式接口不可用",
     "obvious_hint": true,
     "default": "https://60s-api.viki.moe/v2/60s"
+  },
+  "indirect": {
+    "description": "indirect - 获取到图片链接后直接发送",
+    "type": "string",
+    "hint": "默认偷来的间接获取接口，配合获取链接字段来得到图片链接，配合获取图片时间，来缓存图片",
+    "obvious_hint": true,
+    "default": "https://api.2xb.cn/zaob"
+  },
+  "direct": {
+    "description": "direct - 直接发送",
+    "type": "string",
+    "hint": "默认偷来的间接获取接口，直接获取到图片",
+    "obvious_hint": true,
+    "default": "https://api.03c3.cn/api/zb?type=img"
+  },
+  "img_key": {
+    "description": "使用什么key来获取图片链接",
+    "type": "string",
+    "hint": "例如默认接口使用的是imageUrl",
+    "obvious_hint": true,
+    "default": "imageUrl"
+  },
+  "date_key": {
+    "description": "使用什么key来获取图片时间",
+    "type": "string",
+    "hint": "例如默认接口使用的是datatime",
+    "obvious_hint": true,
+    "default": "datatime"
   }
+  
+  
 }
