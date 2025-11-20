@@ -17,10 +17,10 @@ SAVED_NEWS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @register(
-    "daily_60s_news",
-    "CJSen",
+    "每日60s读懂世界",
+    "eaton",
     "这是 AstrBot 的一个每日60s新闻插件。支持定时发送和命令发送",
-    "1.0.0",
+    "0.0.1",
 )
 class Daily60sNewsPlugin(Star):
     """
