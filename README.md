@@ -5,12 +5,12 @@
 `astrbot_plugin_daily_60s_news` 是一个为 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 设计的每日 60 秒新闻插件。该插件可自动或手动推送每日新闻（文本或图片）到指定群组，帮助群成员快速获取当天要闻。
 
 ## 代码参考
-部分代码参考自 [anka-afk/astrbot_plugin_daily_news](https://github.com/anka-afk/astrbot_plugin_daily_news)
+部分代码参考自 [CJSen/astrbot_plugin_daliy_60s_news](https://github.com/CJSen/astrbot_plugin_daliy_60s_news)
 
 ## 功能特性
 
 - 支持定时自动推送每日 60 秒新闻（文本或图片）到指定群组
-- 支持通过命令获取当天新闻（文本或图片）
+- 支持通过命令获取当天新闻
 - 支持管理员手动推送新闻到群组
 - 支持清理过期新闻文件
 - 支持查询插件运行状态
@@ -68,7 +68,6 @@ wechatpadpro:GroupMessage:123456789@chatroom
 - **自动推送**：插件启动后会根据配置的时间自动推送新闻到指定群组。
 - **命令获取新闻**：
   - `/新闻 news` 或 `/新闻 早报` 或 `/新闻 新闻`：获取今日新闻（根据配置返回文本或图片）
-  - `/新闻 text`：获取今日新闻文本
   - `/新闻 image`：获取今日新闻图片
   - `/新闻 status`：查询插件状态（管理员）
   - `/新闻 clean`：清理过期新闻文件（管理员）
