@@ -11,6 +11,7 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.message.message_event_result import MessageChain
+from astrbot.core.star.filter.platform_adapter_type import PlatformAdapterType
 
 # 保存新闻的目录
 SAVED_NEWS_DIR = Path("data", "plugin_data", "astrbot_plugin_daily_60s_news", "news")
@@ -50,10 +51,20 @@ class Daily60sNewsPlugin(Star):
             self.date_key = self.config.date_key
         elif self.news_type == "direct":
             self.img_url = self.config.direct
+        self.is_debug = self.config.is_debug
         logger.info(f"插件配置: {self.config}")
 
         # 启动定时任务
         self._monitoring_task = asyncio.create_task(self._daily_task())
+
+    @filter.platform_adapter_type(PlatformAdapterType.AIOCQHTTP)
+    async def handle_message(self, event: AstrMessageEvent):
+        if self.is_debug:
+            logger.debug("now print messages: "+ event.get_messages())
+            logger.debug("now print message_type: " + event.get_message_type())
+            logger.debug("now print raw_message: " + event.message_obj.raw_message())
+            
+
 
     @filter.command_group("新闻")
     def mnews(self):
