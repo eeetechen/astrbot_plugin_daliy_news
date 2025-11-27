@@ -38,6 +38,7 @@ class Daily60sNewsPlugin(Star):
 
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        self.config = config
 
         self.news_type = config.get("news_type", "indirect")
         self.news_path = SAVED_NEWS_DIR
@@ -63,7 +64,7 @@ class Daily60sNewsPlugin(Star):
             logger.debug("now print messages: "+ event.get_messages())
             logger.debug("now print message_type: " + event.get_message_type())
             logger.debug("now print raw_message: " + event.message_obj.raw_message())
-            
+
 
 
     @filter.command_group("新闻")
