@@ -3,24 +3,32 @@ import datetime
 import os
 import traceback
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Tuple
 
 import aiohttp
+
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.message.message_event_result import MessageChain
 
 # 保存新闻的目录
-SAVED_NEWS_DIR = Path("data", "plugins_data", "astrbot_plugin_daily_60s_news", "news")
+SAVED_NEWS_DIR = Path("data", "plugin_data", "astrbot_plugin_daily_60s_news", "news")
 SAVED_NEWS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _file_exists(path: str) -> bool:
+    """
+    判断新闻文件是否存在
+    """
+    return os.path.exists(path)
 
 
 @register(
     "每日60s读懂世界",
     "eaton",
     "这是 AstrBot 的一个每日60s新闻插件。支持定时发送和命令发送",
-    "0.0.1",
+    "0.0.2",
 )
 class Daily60sNewsPlugin(Star):
     """
@@ -29,8 +37,8 @@ class Daily60sNewsPlugin(Star):
 
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        self.config = config
-        self.news_type = self.config.news_type
+
+        self.news_type = config.get("news_type", "indirect")
         self.news_path = SAVED_NEWS_DIR
         self.groups = self.config.groups
         self.push_time = self.config.push_time
@@ -77,6 +85,7 @@ class Daily60sNewsPlugin(Star):
             f"推送时间: {self.push_time}\n"
             f"距离下次推送还有: {hours}小时{minutes}分钟"
         )
+
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @mnews.command("clean")
@@ -126,13 +135,7 @@ class Daily60sNewsPlugin(Star):
     async def _update_news_files(self):
         logger.info("开始强制更新新闻文件...")
         image_path, _ = self._get_news_file_path()
-        await self._download_news(path=image_path, news_type=self.news_type)
-
-    def _file_exists(self, path: str) -> bool:
-        """
-        判断新闻文件是否存在
-        """
-        return os.path.exists(path)
+        await self._download_news(path=image_path)
 
     def _get_news_file_path(self) -> Tuple[str, str]:
         """
@@ -164,16 +167,15 @@ class Daily60sNewsPlugin(Star):
         :return: (图片路径, 是否成功)
         """
         path, _ = self._get_news_file_path()
-        if self._file_exists(path):
+        if _file_exists(path):
             return path, True
         else:
-            return await self._download_news(path, news_type=self.news_type)
+            return await self._download_news(path)
 
-    async def _download_news(self, path: str, news_type: str) -> Tuple[Any, bool]:
+    async def _download_news(self, path: str) -> tuple[str, bool] | None:
         """
         下载今日新闻（图片），失败自动重试
         :param path: 保存路径
-        :param news_type:
         :return: (内容或路径, 是否成功)
         """
         retries = 3
@@ -243,6 +245,7 @@ class Daily60sNewsPlugin(Star):
                     content = f"接口报错，请联系管理员:{e}"
                     return content, False
                 await asyncio.sleep(1)
+        return None
 
     async def _send_daily_news_to_groups(self):
         """
