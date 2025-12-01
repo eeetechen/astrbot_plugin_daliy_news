@@ -11,7 +11,6 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.message.message_event_result import MessageChain
-from astrbot.core.star.filter.platform_adapter_type import PlatformAdapterType
 
 # 保存新闻的目录
 SAVED_NEWS_DIR = Path("data", "plugin_data", "astrbot_plugin_daily_60s_news", "news")
@@ -29,7 +28,7 @@ def _file_exists(path: str) -> bool:
     "每日60s读懂世界",
     "eaton",
     "这是 AstrBot 的一个每日60s新闻插件。支持定时发送和命令发送",
-    "0.0.2",
+    "0.0.3",
 )
 class Daily60sNewsPlugin(Star):
     """
@@ -52,20 +51,10 @@ class Daily60sNewsPlugin(Star):
             self.date_key = self.config.date_key
         elif self.news_type == "direct":
             self.img_url = self.config.direct
-        self.is_debug = self.config.is_debug
         logger.info(f"插件配置: {self.config}")
 
         # 启动定时任务
         self._monitoring_task = asyncio.create_task(self._daily_task())
-
-    @filter.platform_adapter_type(PlatformAdapterType.AIOCQHTTP)
-    async def handle_message(self, event: AstrMessageEvent):
-        if self.is_debug:
-            logger.debug("now print messages: "+ event.get_messages())
-            logger.debug("now print message_type: " + event.get_message_type())
-            logger.debug("now print raw_message: " + event.message_obj.raw_message())
-
-
 
     @filter.command_group("新闻")
     def mnews(self):
@@ -118,14 +107,6 @@ class Daily60sNewsPlugin(Star):
         """
         await self._send_daily_news_to_groups()
         yield event.plain_result(f"{event.get_sender_name()}:已成功向群组推送新闻")
-
-    @mnews.command("image")
-    async def push_image_news(self, event: AstrMessageEvent):
-        """
-        在当前聊天页面获取今日60s新闻-图片
-        """
-        news_path, _ = await self._get_image_news()
-        yield event.image_result(news_path)
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @mnews.command("update_news")

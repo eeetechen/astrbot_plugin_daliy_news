@@ -1,6 +1,6 @@
 name: astrbot_plugin_daliy_news # 这是你的插件的唯一识别名。
 display_name: "每日60s新闻"
 desc: 一个简单的不稳定的Astrbot每日60s新闻定时推送插件。 # 插件简短描述
-version: v0.0.2 # 插件版本号。格式：v1.1.1 或者 v1.1
+version: v0.0.3 # 插件版本号。格式：v1.1.1 或者 v1.1
 author: eaton # 作者
 repo: https://github.com/eeetechen/astrbot_plugin_daliy_news # 插件的仓库地址
