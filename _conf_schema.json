@@ -63,11 +63,5 @@
     "hint": "例如默认接口使用的是datatime",
     "obvious_hint": true,
     "default": "datatime"
-  },
-  "is_debug": {
-    "description": "是否调试",
-    "type": "bool",
-    "hint": "开启后将在控制台打印消息详细参数",
-    "default": false
   }
 }
