@@ -198,6 +198,22 @@ class Daily60sNewsPlugin(Star):
                                 # 解析JSON响应
                                 data = await response.json()
                                 if data.get("code") == 200:
+                                    api_date = data.get("datatime")
+                                    today = datetime.datetime.now().strftime("%Y-%m-%d")
+                                    if today != api_date:
+                                        # 回退viki_boss
+                                        url = f"https://60s-api.viki.moe/v2/60s?date={date}&encoding=image-proxy"
+                                        logger.info(f"开始下载新闻文件:{url}...")
+                                        async with aiohttp.ClientSession() as session:
+                                            async with session.get(url, timeout=timeout) as response:
+                                                if response.status == 200:
+                                                    content = await response.read()
+                                                    with open(path, "wb") as f:
+                                                        f.write(content)
+                                                        return path, True
+                                                else:
+                                                    raise Exception(f"API返回错误代码: {response.status}")
+
                                     image_url = data.get("imageUrl")
                                     if not image_url:
                                         raise Exception("响应中未找到imageUrl字段")
